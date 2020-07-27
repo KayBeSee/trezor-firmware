@@ -39,27 +39,18 @@ class Overwintered(Bitcoinlike):
         ensure(coin.overwintered)
         super().__init__(tx, keychain, coin)
 
-        if self.tx.version == 3:
-            if not self.tx.branch_id:
-                self.tx.branch_id = 0x5BA81B19  # Overwinter
-        elif self.tx.version == 4:
-            if not self.tx.branch_id:
-                self.tx.branch_id = 0x76B809BB  # Sapling
-        else:
+        if self.tx.version != 4 or self.tx.branch_id is None:
             raise wire.DataError("Unsupported version for overwintered transaction")
 
     async def step8_finish(self) -> None:
+        ensure(self.tx.version == 4)
+
         self.write_tx_footer(self.serialized_tx, self.tx)
 
-        if self.tx.version == 3:
-            write_bitcoin_varint(self.serialized_tx, 0)  # nJoinSplit
-        elif self.tx.version == 4:
-            write_uint64(self.serialized_tx, 0)  # valueBalance
-            write_bitcoin_varint(self.serialized_tx, 0)  # nShieldedSpend
-            write_bitcoin_varint(self.serialized_tx, 0)  # nShieldedOutput
-            write_bitcoin_varint(self.serialized_tx, 0)  # nJoinSplit
-        else:
-            raise wire.DataError("Unsupported version for overwintered transaction")
+        write_uint64(self.serialized_tx, 0)  # valueBalance
+        write_bitcoin_varint(self.serialized_tx, 0)  # nShieldedSpend
+        write_bitcoin_varint(self.serialized_tx, 0)  # nShieldedOutput
+        write_bitcoin_varint(self.serialized_tx, 0)  # nJoinSplit
 
         await helpers.request_tx_finish(self.tx_req)
 
@@ -103,6 +94,8 @@ class Overwintered(Bitcoinlike):
     def hash143_preimage_hash(
         self, txi: TxInputType, public_keys: List[bytes], threshold: int
     ) -> bytes:
+        ensure(self.tx.version == 4)
+
         h_preimage = HashWriter(
             blake2b(
                 outlen=32,
@@ -121,33 +114,21 @@ class Overwintered(Bitcoinlike):
         # 5. hashOutputs
         write_bytes_fixed(h_preimage, get_tx_hash(self.h_outputs), TX_HASH_SIZE)
 
-        if self.tx.version == 3:
-            # 6. hashJoinSplits
-            write_bytes_fixed(h_preimage, b"\x00" * TX_HASH_SIZE, TX_HASH_SIZE)
-            # 7. nLockTime
-            write_uint32(h_preimage, self.tx.lock_time)
-            # 8. expiryHeight
-            write_uint32(h_preimage, self.tx.expiry)
-            # 9. nHashType
-            write_uint32(h_preimage, self.get_sighash_type(txi))
-        elif self.tx.version == 4:
-            zero_hash = b"\x00" * TX_HASH_SIZE
-            # 6. hashJoinSplits
-            write_bytes_fixed(h_preimage, zero_hash, TX_HASH_SIZE)
-            # 7. hashShieldedSpends
-            write_bytes_fixed(h_preimage, zero_hash, TX_HASH_SIZE)
-            # 8. hashShieldedOutputs
-            write_bytes_fixed(h_preimage, zero_hash, TX_HASH_SIZE)
-            # 9. nLockTime
-            write_uint32(h_preimage, self.tx.lock_time)
-            # 10. expiryHeight
-            write_uint32(h_preimage, self.tx.expiry)
-            # 11. valueBalance
-            write_uint64(h_preimage, 0)
-            # 12. nHashType
-            write_uint32(h_preimage, self.get_sighash_type(txi))
-        else:
-            raise wire.DataError("Unsupported version for overwintered transaction")
+        zero_hash = b"\x00" * TX_HASH_SIZE
+        # 6. hashJoinSplits
+        write_bytes_fixed(h_preimage, zero_hash, TX_HASH_SIZE)
+        # 7. hashShieldedSpends
+        write_bytes_fixed(h_preimage, zero_hash, TX_HASH_SIZE)
+        # 8. hashShieldedOutputs
+        write_bytes_fixed(h_preimage, zero_hash, TX_HASH_SIZE)
+        # 9. nLockTime
+        write_uint32(h_preimage, self.tx.lock_time)
+        # 10. expiryHeight
+        write_uint32(h_preimage, self.tx.expiry)
+        # 11. valueBalance
+        write_uint64(h_preimage, 0)
+        # 12. nHashType
+        write_uint32(h_preimage, self.get_sighash_type(txi))
 
         # 10a /13a. outpoint
         write_bytes_reversed(h_preimage, txi.prev_hash, TX_HASH_SIZE)
