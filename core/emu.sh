@@ -7,4 +7,4 @@ if [ -n "$1" ]; then
 fi
 
 cd src
-../build/unix/micropython -O$PYOPT -X heapsize=20M
+../build/unix/trezor-emu-core -O$PYOPT -X heapsize=20M
