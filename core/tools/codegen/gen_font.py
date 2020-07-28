@@ -52,9 +52,9 @@ def process_bitmap_buffer(buf, bpp):
     return res
 
 
-def process_face(name, style, size, bpp=4):
+def process_face(name, style, size, bpp=4, ext="ttf"):
     print("Processing ... %s %s %s" % (name, style, size))
-    face = freetype.Face("fonts/%s-%s.ttf" % (name, style))
+    face = freetype.Face("fonts/%s-%s.%s" % (name, style, ext))
     face.set_pixel_sizes(0, size)
     fontname = "%s_%s_%d" % (name.lower(), style.lower(), size)
     with open("font_%s.h" % fontname, "wt") as f:
@@ -101,7 +101,11 @@ def process_face(name, style, size, bpp=4):
                 bearingX = 0
             bearingY = metrics.horiBearingY // 64
             assert advance >= 0 and advance <= 255
+            if bearingX < 0: # HACK
+                bearingX = 0
             assert bearingX >= 0 and bearingX <= 255
+            if bearingY < 0: # HACK
+                bearingY = 0
             assert bearingY >= 0 and bearingY <= 255
             print(
                 'Loaded glyph "%c" ... %d x %d @ %d grays (%d bytes, metrics: %d, %d, %d)'
@@ -149,10 +153,11 @@ def process_face(name, style, size, bpp=4):
         f.write("};\n")
 
 
-process_face("Roboto", "Regular", 20)
-process_face("Roboto", "Bold", 20)
+process_face("TTHoves", "Regular", 20, ext="otf")
+process_face("TTHoves", "Medium", 20, ext="otf")
+process_face("TTHoves", "Bold", 20, ext="otf")
 process_face("RobotoMono", "Regular", 20)
 
-process_face("PixelOperator", "Regular", 8, 1)
-process_face("PixelOperator", "Bold", 8, 1)
-process_face("PixelOperatorMono", "Regular", 8, 1)
+process_face("PixelOperator", "Regular", 8, bpp=1)
+process_face("PixelOperator", "Bold", 8, bpp=1)
+process_face("PixelOperatorMono", "Regular", 8, bpp=1)
