@@ -39,12 +39,7 @@ class Zcashlike(Bitcoinlike):
         ensure(coin.overwintered)
         super().__init__(tx, keychain, coin)
 
-        if self.tx.version != 4 or self.tx.branch_id is None:
-            raise wire.DataError("Unsupported version for overwintered transaction")
-
     async def step8_finish(self) -> None:
-        ensure(self.tx.version == 4)
-
         self.write_tx_footer(self.serialized_tx, self.tx)
 
         write_uint64(self.serialized_tx, 0)  # valueBalance
@@ -94,8 +89,6 @@ class Zcashlike(Bitcoinlike):
     def hash143_preimage_hash(
         self, txi: TxInputType, public_keys: List[bytes], threshold: int
     ) -> bytes:
-        ensure(self.tx.version == 4)
-
         h_preimage = HashWriter(
             blake2b(
                 outlen=32,
