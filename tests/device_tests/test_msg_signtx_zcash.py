@@ -79,7 +79,7 @@ class TestMsgSigntxZcash:
             details = proto.SignTx(
                 version=3, version_group_id=0x03C48270, branch_id=0x5BA81B19,
             )
-            with pytest.raises(TrezorFailure, match="Unsupported version"):
+            with pytest.raises(TrezorFailure, match="DataError"):
                 _, serialized_tx = btc.sign_tx(
                     client,
                     "Zcash Testnet",

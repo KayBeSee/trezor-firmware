@@ -189,9 +189,9 @@ def sanitize_sign_tx(tx: SignTx, coin: CoinInfo) -> SignTx:
     if coin.overwintered:
         if tx.version_group_id is None:
             raise wire.DataError("Version group ID must be set.")
-        if self.tx.version != 4:
+        if tx.version != 4:
             raise wire.DataError("Unsupported transaction version.")
-        if self.tx.branch_id is None:
+        if tx.branch_id is None:
             raise wire.DataError("Branch ID must be set.")
     elif not coin.overwintered:
         if tx.version_group_id is not None:
